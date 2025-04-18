@@ -1,6 +1,6 @@
 # Optimización de ruta para un vendedor en Colombia
 # usando colonias de hormigas y algoritmos genéticos
-
+set.seed(123)
 # Instalar y cargar paquetes necesarios
 packages <- c("ggplot2", "dplyr", "sf", "sp", "maps", "animation", "GA")
 for(pkg in packages) {
@@ -269,7 +269,8 @@ genetic_tsp <- function(distancias, tamano_poblacion=100, n_generaciones=300) {
     maxiter = n_generaciones,
     run = 50,  # Ejecutar por más iteraciones sin mejora
     pmutation = 0.2,
-    parallel = FALSE
+    parallel = FALSE,
+    seed = 123
   )
   
   mejor_ruta <- ga_result@solution[1,]
@@ -279,7 +280,6 @@ genetic_tsp <- function(distancias, tamano_poblacion=100, n_generaciones=300) {
 }
 
 # Ejecutar ambos algoritmos con manejo de errores
-set.seed(42)
 cat("Ejecutando algoritmo de colonias de hormigas...\n")
 tryCatch({
   resultado_aco <- aco_tsp(distancias, n_iter=200)
