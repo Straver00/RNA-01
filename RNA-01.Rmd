@@ -1,0 +1,97 @@
+---
+title: "Optimización Numérica y Combinatoria"
+author:
+  - Carlos Jose Quijano Valencia
+  -
+  -
+  -
+  -
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# Tabla de contenidos
+
+1.  [Parte 1: Optimización Numérica](#parte-1-optimización-numérica)
+    -   [Funciones de prueba](#funciones-de-prueba)
+    -   [Optimización en dos y tres dimensiones](#optimización-en-dos-y-tres-dimensiones)
+    -   [Métodos heurísticos vs Métodos de descenso por gradiente](#métodos-heurísticos-vs-métodos-de-descenso-por-gradiente)
+    -   [Representación gráfica del proceso de optimización](#representación-gráfica-del-proceso-de-optimizacion)
+2.  [Parte 2: Optimización Combinatoria](#parte-2-optimización-combinatoria)
+    -   [Descripción del problema del vendedor](#descripción-del-problema-del-vendedor)
+    -   [Algoritmos utilizados](#algoritmos-utilizados)
+    -   [Representación gráfica de la mejor solución](#representación-gráfica-de-la-mejor-solución)
+3.  [Reporte de Contribución Individual](#reporte-de-contribución-individual)
+4.  [Bibliografía](#bibliografía) {#bibliografía}
+
+# Parte 1: Optimización Numérica {#parte-1-optimización-numérica}
+
+(Agregar contenido de la Parte 1 aquí)
+
+------------------------------------------------------------------------
+
+# Parte 2: Optimización Combinatoria {#parte-2-optimización-combinatoria}
+
+En este ejercicio, se optimiza el recorrido de un vendedor que debe visitar 13 ciudades principales de Colombia. El objetivo es encontrar la ruta más económica utilizando **colonias de hormigas** y **algoritmos genéticos**, tomando en cuenta los costos de desplazamiento, peajes y combustible.
+
+## Descripción del problema del vendedor {#descripción-del-problema-del-vendedor}
+
+Un vendedor debe hacer un recorrido por todas las 13 ciudades principales de Colombia. El costo de desplazamiento está determinado por tres factores:
+
+-   **Costo del salario por hora** (dependiendo del tiempo de viaje).
+-   **Costo del combustible** (según la distancia entre las ciudades y el consumo de combustible del vehículo).
+-   **Costo de peajes** (estimado por distancia y valor de los peajes en las carreteras).
+
+Este problema se modela como un **Problema del Viajante de Comercio** (TSP, por sus siglas en inglés), en el cual buscamos la ruta más corta o económica para visitar todas las ciudades.
+
+## Algoritmos utilizados {#algoritmos-utilizados}
+
+En este caso, se usan dos algoritmos de optimización para encontrar la mejor ruta:
+
+1\. **Algoritmo de Colonias de Hormigas (ACO)**: Simula el comportamiento de las hormigas para encontrar la mejor ruta por medio de la deposición de feromonas en el camino.
+
+2\. **Algoritmo Genético (GA)**: Utiliza operadores genéticos como selección, cruce y mutación para encontrar soluciones óptimas en un espacio de búsqueda complejo.
+
+### Código en R para la optimización
+
+Cargamos las librerias necesarias:
+
+```{r}
+# Cargar las librerías necesarias
+packages <- c("ggplot2", "dplyr", "sf", "sp", "maps", "animation", "GA")
+for(pkg in packages) {
+  if(!require(pkg, character.only = TRUE)) {
+    install.packages(pkg)
+    library(pkg, character.only = TRUE)
+  }
+}
+```
+
+Cargamos el archivo CSV con las distancias viales entre las ciudades, estas distancias son viales y fueron extraidos del siguiente link: <https://colombia.mejoresrutas.com/tabla-de-distancias/co/#google_vignette>.
+
+```{r}
+df_distancias
+```
+
+Convertimos el dataframe en una matrix:
+
+```{r}
+distancias <- as.matrix(df_distancias)
+```
+
+Definimos parámetros de costos (salario, combustible, peajes):
+
+```{r}
+salario_hora <- 20000  # COP/hora
+velocidad_promedio <- 80  # km/h
+consumo_combustible <- 50  # km/galón
+precio_gasolina <- 16000  # COP/galón
+```
+
+------------------------------------------------------------------------
+
+# Bibliografía {#bibliografía}
+
+La información sobre las distancias viales entre ciudades fue obtenida de:
+
+Mejores Rutas. (n.d.). *Tabla de distancias entre ciudades de Colombia*. Recuperado el 25 de abril de 2025, de <https://colombia.mejoresrutas.com/tabla-de-distancias/co/#google_vignette>
