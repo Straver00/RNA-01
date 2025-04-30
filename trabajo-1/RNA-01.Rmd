@@ -795,7 +795,7 @@ if (!is.null(resultado_ga)) {
       title(main = "Convergencia del Algoritmo Genético (GA)")
 
 
-      caption_text <- "Figura 2: Evolución del mejor fitness (verde) y fitness promedio (azul) por generación."
+      caption_text <- "Figura 3: Evolución del mejor fitness (verde) y fitness promedio (azul) por generación."
 
       mtext(caption_text, side = 1, line = 5, adj = 0, cex = 0.8)
 
@@ -899,7 +899,7 @@ if(exists("all_segments_history_ga") && nrow(all_segments_history_ga) > 0 && exi
       labs(
         title = "Proceso GA - Generación {frame}", 
         subtitle = "Mejor ruta encontrada en esta generación", 
-        caption = "Figura 3: Proceso de optimización ACO(Fuente: Elaboración propia, 2025)", 
+        caption = "Figura 4: Proceso de optimización ACO(Fuente: Elaboración propia, 2025)", 
         x = "Longitud", y = "Latitud"
       ) + 
       ease_aes('linear') 
@@ -946,7 +946,7 @@ if(exists("all_segments_history_ga") && nrow(all_segments_history_ga) > 0 && exi
 } 
 ```
 
-La animación resultante (**Figura 3**) ilustra cómo la mejor ruta encontrada por el algoritmo AG evoluciona a lo largo de las iteraciones, tendiendo a estabilizarse a medida que el algoritmo converge hacia una solución de bajo costo.
+La animación resultante (**Figura 4**) ilustra cómo la mejor ruta encontrada por el algoritmo AG evoluciona a lo largo de las iteraciones, tendiendo a estabilizarse a medida que el algoritmo converge hacia una solución de bajo costo.
 
 ```{r}
 knitr::include_graphics("proceso_optimizacion_ga.gif")
