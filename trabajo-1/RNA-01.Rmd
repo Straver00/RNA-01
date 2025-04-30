@@ -32,13 +32,13 @@ output: html_document
 
 # Parte 2: Optimización Combinatoria {#parte-2-optimización-combinatoria}
 
-En este ejercicio, se optimiza el recorrido de un vendedor que debe visitar 13 ciudades principales de Colombia (Bogota, Cali, Medellin, Barranquilla, Cartagena, Cucuta, Bucaramanga, Pereira, Santa Marta, Ibague, Pasto, Manizales, Neiva). El objetivo es encontrar la ruta más económica utilizando **colonias de hormigas** y **algoritmos genéticos**, tomando en cuenta los costos de desplazamiento, peajes y combustible.
+En esta sección, se aborda la optimización del recorrido de un vendedor que debe visitar 13 ciudades principales de Colombia: Bogotá, Cali, Medellín, Barranquilla, Cartagena, Cúcuta, Bucaramanga, Pereira, Santa Marta, Ibagué, Pasto, Manizales y Neiva. El objetivo central es determinar la ruta que minimice el costo total del viaje, empleando dos metaheurísticas: Optimización por **Colonias de Hormigas (ACO)** y **Algoritmos Genéticos (GA)**. El costo total considera factores como el salario del conductor durante el viaje, el consumo de combustible y los peajes.
 
 ## Descripción del problema del vendedor {#descripción-del-problema-del-vendedor}
 
-Un vendedor debe hacer un recorrido por todas las 13 ciudades principales de Colombia. El costo de desplazamiento está determinado por tres factores:
+El problema se modela como una instancia del Problema del Viajante de Comercio (TSP), un clásico desafío de optimización combinatoria. Se busca encontrar la ruta cíclica más económica que visite cada una de las 13 ciudades exactamente una vez y regrese a la ciudad de origen. El costo asociado al desplazamiento entre cualquier par de ciudades se desglosa en tres componentes principales:
 
--   **Costo del salario** : Para obtener el costo del salario se obtuvo el salario minimo en Colombia según el ministerio de trabajo fue de \$1.423.500, haciendo calculos simples llegamos a que la hora ordinaria en Colombia se da por la siguiente formula:
+-   **Costo del salario** : Se tomó como referencia el salario mínimo mensual legal vigente (SMMLV) en Colombia al momento del estudio, fijado en \$1,423,500 COP (fuente: Ministerio de Trabajo). Haciendo calculos simples llegamos a que la hora ordinaria en Colombia se da por la siguiente formula:
 
     $$
     \text{Valor hora ordinaria} = \frac{\text{salario mensual}}{\left(\frac{\text{horas semanales}}{6} \times 30\right)}
@@ -58,9 +58,9 @@ Un vendedor debe hacer un recorrido por todas las 13 ciudades principales de Col
 
     $\text{Costo_salario} = \text{tiempo} \times \text{costo_hora} \tag{1}$
 
--   **Costo del combustible** . Los datos sobre el costo del combustible fueron extraidos de la pagina de Comisión de Regulación de Energía y Gas (CREG), se hayó que el promedio de las 13 principales ciudidades de Colombia es de \$15.827.
+-   **Costo del combustible** . Se utilizó un precio promedio del galón de gasolina, obtenido a partir de los precios reportados por la Comisión de Regulación de Energía y Gas (CREG) para las 13 ciudades principales en la fecha del análisis, resultando en \$15,827 COP/galón.
 
-    Además se seleccionó de manera arbitraria un Kia Picanto 1.0L, el cual tiene un consumo mixto de 60kms/galón; los datos de consumo fueron extraidos de "el carro colombiano", una revista virtual basada en automoviles.
+    Se seleccionó como vehículo de referencia un Kia Picanto 1.0L. Según datos de la publicación especializada "El Carro Colombiano", este vehículo presenta un consumo mixto aproximado de 60 km/galón.
 
     El costo del combustible se calcula con la siguiente ecuación (2):
 
@@ -70,7 +70,7 @@ Un vendedor debe hacer un recorrido por todas las 13 ciudades principales de Col
 
     Observación: Se uso el galon como unidad de medida ya que en Colombia es el estandar para medir la gasolina.
 
--   **Costo de peajes**. El costo de los peajes se extrajo de la pagina de Tollguru, la cual proporciona información sobre los peajes entre las principales ciudades de Colombia. Se utilizó el promedio de los peajes entre las 13 ciudades principales.
+-   **Costo de peajes**. La información sobre los costos de peajes para las rutas que conectan las 13 ciudades se obtuvo de la plataforma Tollguru (Se consideraron los peajes de las rutas más comunes).
 
     El costo de los peajes se calcula con la siguiente ecuación (3):
 
@@ -86,9 +86,9 @@ $$ Este problema se modela como un **Problema del Viajante de Comercio** (TSP, p
 
 En este caso, se usan dos algoritmos de optimización para encontrar la mejor ruta:
 
-1\. **Algoritmo de Colonias de Hormigas (ACO)**: Simula el comportamiento de las hormigas para encontrar la mejor ruta por medio de la deposición de feromonas en el camino.
+1\. **Algoritmo de Colonias de Hormigas (ACO)**: Este algoritmo se inspira en el comportamiento colectivo de las hormigas al buscar caminos. Emplea feromonas artificiales para marcar las rutas: las rutas más cortas (de menor costo) acumulan más feromona, incrementando la probabilidad de que sean elegidas por hormigas futuras, guiando así la búsqueda hacia soluciones prometedoras.
 
-2\. **Algoritmo Genético (GA)**: Utiliza operadores genéticos como selección, cruce y mutación para encontrar soluciones óptimas en un espacio de búsqueda complejo.
+2\. **Algoritmo Genético (GA)**: Basado en los principios de la evolución biológica y la selección natural, este algoritmo opera sobre una población de posibles rutas (cromosomas). Mediante operadores como la selección (favoreciendo las rutas de menor costo), el cruce (combinando partes de rutas existentes para crear nuevas) y la mutación (introduciendo pequeñas alteraciones aleatorias), la población evoluciona a lo largo de generaciones, convergiendo hacia soluciones de alta calidad.
 
 ### Código en R para la optimización
 
@@ -162,13 +162,19 @@ if (file.exists("df_costo_total.csv")) {
 
 Ahora, dado este dataset de costos utilizaremos tanto el algoritmo de colonia de hormigas y un algoritmo evolutivo para encontrar el orden correcto.
 
-## Algoritmo de colonia de hormigas:
+## Algoritmo de Optimización por Colonia de Hormigas (ACO)
 
-"En ciencias de la computación y en investigación operativa, el algoritmo de la colonia de hormigas, algoritmo hormiga u optimización por colonia de hormigas (Ant Colony Optimization, ACO) es una técnica probabilística para solucionar problemas computacionales que pueden reducirse a buscar los mejores caminos o rutas en grafos." (Wikipedia, s.f.).
+La Optimización por Colonia de Hormigas (ACO) es "una técnica probabilística para solucionar problemas computacionales que pueden reducirse a buscar los mejores caminos o rutas en grafos", como se describe en la literatura (Wikipedia, s.f.). Su funcionamiento se inspira directamente en cómo las hormigas encuentran eficientemente fuentes de alimento: depositan feromonas en sus trayectos, y las rutas más efectivas acumulan mayores concentraciones de esta sustancia, atrayendo a más hormigas.
 
-Este algoritmo se basa en el comportamiento de las hormigas al buscar comida. Las hormigas depositan feromonas en el camino que recorren, y la cantidad de feromonas depositadas depende de la calidad de la ruta. Las hormigas son más propensas a seguir caminos con mayor concentración de feromonas, lo que les permite encontrar rutas óptimas a lo largo del tiempo.
+El algoritmo ACO simula este comportamiento mediante:
 
-Ahora construimos la función para el algoritmo de colonia de hormigas:
+**Hormigas Artificiales:** Agentes que construyen soluciones candidatas (rutas).
+
+**Feromonas Virtuales:** Información asociada a los componentes de la solución (e.g., las conexiones entre ciudades) que se actualiza según la calidad de las soluciones encontradas. Rutas de mejor calidad refuerzan más intensamente sus componentes.
+
+**Selección Probabilística:** Las hormigas eligen los siguientes pasos basándose tanto en la intensidad de la feromona como, opcionalmente, en información heurística (e.g., la distancia directa), favoreciendo caminos prometedores pero permitiendo la exploración.
+
+A continuación, se presenta la función `ant_colony_optimization_r_con_historial` desarrollada en R para implementar el algoritmo de optimización por colonia de hormigas. Esta función está diseñada para resolver el Problema del Viajante de Comercio (TSP), buscando la ruta de menor costo total. Además de encontrar la mejor ruta, registra el historial de la mejor solución encontrada en cada iteración, lo cual es útil para analizar la convergencia y visualizar el proceso.
 
 ```{r}
 # --- Función ACO Única (con historial detallado de rutas) ---
@@ -388,7 +394,7 @@ ant_colony_optimization_r_con_historial <- function(costos, num_ants = 10, num_i
 }
 ```
 
-Ejecutamos la función ACO:
+Ahora, ejecutamos la función `ant_colony_optimization_r_con_historial` con un conjunto de parámetros definidos. Se establece una semilla (`set.seed`) para garantizar la reproducibilidad de los resultados, dado el componente probabilístico del algoritmo.
 
 ```{r}
 # Parámetros de ejecución
@@ -466,7 +472,7 @@ if (!is.null(resultado_aco) && is.finite(resultado_aco$best_tour_cost)) {
 }
 ```
 
-Generamos la animación que muestra la evolución de la mejor ruta encontrada por ACO:
+Para entender mejor cómo el algoritmo refina la solución, generamos una animación que muestra la mejor ruta encontrada hasta cada iteración. Primero, preparamos los datos del historial de rutas, convirtiendo los índices de las rutas en coordenadas geográficas y estructurándolos para `gganimate` .
 
 ```{r}
 # --- Preparar Datos del Historial para gganimate ---
@@ -586,7 +592,7 @@ if(exists("all_segments_history") && nrow(all_segments_history) > 0) {
 }
 ```
 
-El proceso de optimización realizado por el algoritmo ACO muestra la mejor ruta encontrada hasta la iteración 80 (ver **Figura 1**)
+La animación resultante (**Figura 2**) ilustra cómo la mejor ruta encontrada por el algoritmo ACO evoluciona a lo largo de las iteraciones, tendiendo a estabilizarse a medida que el algoritmo converge hacia una solución de bajo costo.
 
 ```{r}
 knitr::include_graphics("proceso_optimizacion_aco_optimizado.gif")
@@ -594,9 +600,25 @@ knitr::include_graphics("proceso_optimizacion_aco_optimizado.gif")
 
 Continuando con con el **Algoritmo Genetico**:
 
-"Los algoritmos genéticos (AG) funcionan entre el conjunto de soluciones de un problema llamado fenotipo, y el conjunto de individuos de una población natural, codificando la información de cada solución en una cadena, generalmente binaria, llamada cromosoma. Los símbolos que forman la cadena son llamados genes. Cuando la representación de los cromosomas se hace con cadenas de dígitos binarios se le conoce como genotipo. Los cromosomas evolucionan a través de iteraciones, llamadas generaciones. En cada generación, los cromosomas son evaluados usando alguna medida de aptitud. Las siguientes generaciones (nuevos cromosomas), son generadas aplicando los operadores genéticos repetidamente, siendo estos los operadores de selección, cruzamiento, mutación y reemplazo." (Wikipedia, s.f.).
+Continuando con las metaheurísticas, ahora abordamos los **Algoritmos Genéticos (AG)**, una clase de algoritmos de optimización inspirados en el proceso de la evolución natural y la genética. Los AG son particularmente efectivos para problemas complejos donde el espacio de búsqueda es grande, como el Problema del Viajante de Comercio.
 
-Ahora construimos la función para el algoritmo genético (AG):
+El enfoque se basa en mantener y evolucionar una **población** de soluciones candidatas al problema. En nuestro contexto del TSP, cada 'individuo' de la población es una **ruta** o secuencia específica de visita a las ciudades. Cada ruta se representa mediante una codificación, análoga a un **cromosoma** (usualmente, una permutación de los índices o nombres de las ciudades).
+
+El algoritmo opera en ciclos llamados **generaciones**. En cada generación, se simula el proceso evolutivo mediante los siguientes pasos clave [inspirados en conceptos descritos por Wikipedia (s.f.) y otros]:
+
+1.  **Evaluación:** Se calcula la **aptitud (fitness)** de cada ruta en la población. Para el TSP, una mayor aptitud corresponde a un menor costo total del recorrido (usualmente se define como el inverso del costo o alguna función decreciente del costo).
+
+2.  **Selección:** Se seleccionan las rutas 'padres' que contribuirán a la siguiente generación. Las rutas con mayor aptitud tienen una mayor probabilidad de ser elegidas, simulando la "supervivencia del más apto".
+
+3.  **Cruzamiento (Crossover):** Se combinan pares de rutas padres para crear nuevas rutas 'hijas'. Este proceso mezcla segmentos o características de las rutas progenitoras, buscando generar nuevas combinaciones potencialmente mejores.
+
+4.  **Mutación:** Se aplican pequeñas alteraciones aleatorias a algunas de las nuevas rutas (o a veces a individuos existentes). En el TSP, esto podría implicar intercambiar la posición de dos ciudades en la secuencia. La mutación introduce diversidad genética en la población y ayuda a evitar que el algoritmo se estanque prematuramente en soluciones subóptimas.
+
+5.  **Reemplazo:** Se forma la población para la siguiente generación, decidiendo qué individuos (padres, hijos) sobreviven. Existen diversas estrategias, como reemplazar a los menos aptos o mantener a los mejores ('elitismo').
+
+A través de la aplicación repetida de estos operadores genéticos (selección, cruzamiento, mutación) durante muchas generaciones, la población tiende a converger hacia rutas de muy alta calidad (bajo costo).
+
+A continuación, se presenta la función en R que implementa el Algoritmo Genético diseñado para resolver nuestro problema del viajante.
 
 ```{r}
 calculate_tour_cost <- function(tour, cost_matrix) {
@@ -773,7 +795,7 @@ if (!is.null(resultado_ga)) {
       title(main = "Convergencia del Algoritmo Genético (GA)")
 
 
-      caption_text <- "Figura 1: Evolución del mejor fitness (rojo) y fitness promedio (negro) por generación."
+      caption_text <- "Figura 2: Evolución del mejor fitness (verde) y fitness promedio (azul) por generación."
 
       mtext(caption_text, side = 1, line = 5, adj = 0, cex = 0.8)
 
@@ -877,7 +899,7 @@ if(exists("all_segments_history_ga") && nrow(all_segments_history_ga) > 0 && exi
       labs(
         title = "Proceso GA - Generación {frame}", 
         subtitle = "Mejor ruta encontrada en esta generación", 
-        caption = "Figura 2: Proceso de optimización ACO(Fuente: Elaboración propia, 2025)", 
+        caption = "Figura 3: Proceso de optimización ACO(Fuente: Elaboración propia, 2025)", 
         x = "Longitud", y = "Latitud"
       ) + 
       ease_aes('linear') 
@@ -924,17 +946,27 @@ if(exists("all_segments_history_ga") && nrow(all_segments_history_ga) > 0 && exi
 } 
 ```
 
-El proceso de optimización realizado por el algoritmo ACO muestra la mejor ruta encontrada hasta la iteración 160 (ver **Figura 2**)
+La animación resultante (**Figura 3**) ilustra cómo la mejor ruta encontrada por el algoritmo AG evoluciona a lo largo de las iteraciones, tendiendo a estabilizarse a medida que el algoritmo converge hacia una solución de bajo costo.
 
 ```{r}
 knitr::include_graphics("proceso_optimizacion_ga.gif")
 ```
 
-Comparamos los resultados de ambos algoritmos:
+Comparando ambos algoritmos
 
 ```{r}
-costo_aco <- if (!is.null(resultado_aco) && is.finite(resultado_aco$best_tour_cost)) resultado_aco$best_tour_cost else Inf
-indices_aco <- if (!is.null(resultado_aco) && is.finite(resultado_aco$best_tour_cost)) resultado_aco$best_tour_indices else NULL
+costo_aco <-
+  if (!is.null(resultado_aco) && is.finite(resultado_aco$best_tour_cost)) {
+    resultado_aco$best_tour_cost
+  } else {
+    Inf # Asignar Infinito si no hay resultado válido
+  }
+indices_aco <-
+  if (!is.null(resultado_aco) && is.finite(resultado_aco$best_tour_cost)) {
+    resultado_aco$best_tour_indices
+  } else {
+    NULL # Asignar NULL si no hay resultado válido
+  }
 
 costo_ga <- if (exists("best_tour_cost_ga") && is.finite(best_tour_cost_ga)) best_tour_cost_ga else Inf
 indices_ga <- if (exists("best_tour_indices_ga") && is.finite(best_tour_cost_ga)) best_tour_indices_ga else NULL
