@@ -32,7 +32,7 @@ output: html_document
 
 # Parte 2: Optimización Combinatoria {#parte-2-optimización-combinatoria}
 
-En esta sección, se aborda la optimización del recorrido de un vendedor que debe visitar 13 ciudades principales de Colombia: Bogotá, Cali, Medellín, Barranquilla, Cartagena, Cúcuta, Bucaramanga, Pereira, Santa Marta, Ibagué, Pasto, Manizales y Neiva. El objetivo central es determinar la ruta que minimice el costo total del viaje, empleando dos metaheurísticas: Optimización por **Colonias de Hormigas (ACO)** y **Algoritmos Genéticos (GA)**. El costo total considera factores como el salario del conductor durante el viaje, el consumo de combustible y los peajes.
+En esta sección, se aborda la optimización del recorrido de un vendedor que debe visitar 13 ciudades principales de Colombia: Bogotá, Cali, Medellín, Barranquilla, Cartagena, Cúcuta, Bucaramanga, Pereira, Santa Marta, Ibagué, Pasto, Manizales y Neiva. El objetivo central es determinar la ruta que minimice el costo total del viaje, empleando dos metaheurísticas: Optimización por **Colonias de Hormigas (ACO)** y **Algoritmos Genéticos (GA)**. El costo total considera factores como el salario del conductor durante el viaje, el consumo de combustible, las distancias, tiempos de viaje y peajes.
 
 ## Descripción del problema del vendedor {#descripción-del-problema-del-vendedor}
 
@@ -52,7 +52,7 @@ El problema se modela como una instancia del Problema del Viajante de Comercio (
 
     Lo cual nos da un valor de hora ordinaria de \$6.189, el cual usaremos para el calculo del costo del salario.
 
-    Adicionalmente necesitamos el tiempo de conducción entre ciudades para poder calcular el costo del salario. Para esto, se usó una velocidad promedio de 43km/hora, este valor se fijó debido a fallas viales, tramos con velocidades reducidas, pequeñas paradas, etc.
+    Adicionalmente necesitamos el tiempo de conducción entre ciudades para poder calcular el costo del salario. Para esto, se consultaron en [Google Maps Distance Matrix API](https://developers.google.com/maps/documentation/distance-matrix){target="_blank"} utilizando el modo *dirving*.
 
     El costo del salario se calcula con la siguiente ecuación (1):
 
@@ -61,6 +61,8 @@ El problema se modela como una instancia del Problema del Viajante de Comercio (
 -   **Costo del combustible** . Se utilizó un precio promedio del galón de gasolina, obtenido a partir de los precios reportados por la Comisión de Regulación de Energía y Gas (CREG) para las 13 ciudades principales en la fecha del análisis, resultando en \$15,827 COP/galón.
 
     Se seleccionó como vehículo de referencia un Kia Picanto 1.0L. Según datos de la publicación especializada "El Carro Colombiano", este vehículo presenta un consumo mixto aproximado de 60 km/galón.
+
+    Además necesitamos la distancia entre las ciudades, la cual fue obtenida de la misma API de Google Maps. La distancia entre las ciudades se obtiene en kilómetros y se usa para calcular el costo del combustible.
 
     El costo del combustible se calcula con la siguiente ecuación (2):
 
@@ -104,13 +106,93 @@ library(rnaturalearthdata)
 library(gganimate)
 library(gifski)
 library(GA)
+library(httr)
+library(jsonlite)
+library(dplyr)
+library(tibble)
+library(readr)
 ```
 
-Cargamos los csv CSV con las distancias viales entre las ciudades y peajes. Adicionalmente cargamos los nombres de las ciudades y el número de ciudades:
+Consultamos las distancias viales entre las ciudades y tiempos de viaje ofrecidos por la API de Google. Adicionalmente cargamos los costos de peajes, los nombres de las ciudades y el número de ciudades:
 
 ```{r}
-# Cargar los datos de distancias y peajes
-df_distancias <- read.csv("df_distancias.csv", row.names = 1)
+# Consultamos las distancias viales y tiempos de viaje
+API_KEY <- "APIKEY DE GOOGLE MAPS"
+
+addresses <- c(
+  "Bogota, Colombia", "Cali, Colombia", "Medellin, Colombia", "Barranquilla, Colombia",
+  "Cartagena, Colombia", "Cucuta, Colombia", "Bucaramanga, Colombia", "Pereira, Colombia",
+  "Santa Marta, Colombia", "Ibague, Colombia", "Pasto, Colombia", "Manizales, Colombia",
+  "Neiva, Colombia"
+)
+
+city_names <- sub(",.*$", "", addresses)
+
+
+get_distance_time_matrix <- function(addr_vec, labels, api_key) {
+  n <- length(addr_vec)
+  dist_mat <- matrix(NA_real_, n, n)
+  time_mat <- matrix(NA_real_, n, n)
+  
+  for (i in seq_along(addr_vec)) {
+    res <- httr::GET(
+      "https://maps.googleapis.com/maps/api/distancematrix/json",
+      query = list(
+        origins      = addr_vec[i],
+        destinations = paste(addr_vec, collapse = "|"),
+        key          = api_key,
+        mode         = "driving",
+        language     = "es",
+        units        = "metric"
+      )
+    )
+    httr::stop_for_status(res)
+    
+    # 👇  ¡OJO!  simplifyVector = FALSE mantiene la jerarquía original
+    json <- fromJSON(content(res, "text", encoding = "UTF-8"),
+                     simplifyVector = FALSE)
+    
+    if (json$status != "OK") {
+      stop("API error: ", json$error_message)
+    }
+    
+    elements <- json$rows[[1]]$elements   # ahora sí es lista de 13 sub-listas
+    
+    # Recorremos destino por destino
+    for (j in seq_along(elements)) {
+      el <- elements[[j]]
+      if (el$status == "OK") {
+        dist_mat[i, j] <- el$distance$value / 1000
+        time_mat[i, j] <- el$duration$value / 3600
+      }
+    }
+    
+    Sys.sleep(1)
+  }
+  
+  dist_df <- as_tibble(dist_mat, .name_repair = ~labels) |> 
+             add_column(Ciudad = labels, .before = 1)
+  time_df <- as_tibble(time_mat, .name_repair = ~labels) |> 
+             add_column(Ciudad = labels, .before = 1)
+  dist_df <- as.data.frame(dist_mat)
+  time_df <- as.data.frame(time_mat)
+
+  rownames(dist_df) <- labels
+  rownames(time_df) <- labels
+  colnames(dist_df) <- labels
+  colnames(time_df) <- labels
+  list(distances = dist_df, times = time_df)
+}
+
+matrices <- get_distance_time_matrix(addresses, city_names, API_KEY)
+df_distancias  <- matrices$distances
+df_tiempos_viajes  <- matrices$times
+
+# Guardar a CSV
+write_csv(df_distancias,  "df_distancias.csv")
+write_csv(df_tiempos_viajes,  "df_tiempos_viajes.csv")
+
+
 df_peajes <- read.csv("df_peajes.csv", row.names = 1)
 ciudades_nombres <- c("Bogota", "Cali", "Medellin", "Barranquilla", "Cartagena", 
                       "Cucuta", "Bucaramanga", "Pereira", "Santa Marta", "Ibague", 
@@ -142,7 +224,6 @@ Calculamos el costo de la gasolina, el tiempo de los viajes y el costo del salar
 
 ```{r}
 df_costo_gasolina <- (df_distancias/consumo_combustible) * precio_gasolina
-df_tiempos_viajes <- df_distancias/43
 df_costo_salario <- df_tiempos_viajes * salario_hora
 ```
 
@@ -395,6 +476,8 @@ ant_colony_optimization_r_con_historial <- function(costos, num_ants = 10, num_i
 ```
 
 Ahora, ejecutamos la función `ant_colony_optimization_r_con_historial` con un conjunto de parámetros definidos. Se establece una semilla (`set.seed`) para garantizar la reproducibilidad de los resultados, dado el componente probabilístico del algoritmo.
+
+Adicional, en la **figura 1** se observa como el algoritmo va obtendiendo mejores resultados al optimizar la función.
 
 ```{r}
 # Parámetros de ejecución
@@ -871,6 +954,8 @@ if(nrow(all_segments_history_ga) == 0) {
 }
 ```
 
+En la **figura 3** se nota como obtiene mejores resultados en especial en el "Best" a medida que el algoritmo avanza en las generaciones.
+
 Creamos la animación para los algortimos geneticos:
 
 ```{r}
@@ -952,7 +1037,7 @@ La animación resultante (**Figura 4**) ilustra cómo la mejor ruta encontrada p
 knitr::include_graphics("proceso_optimizacion_ga.gif")
 ```
 
-Comparando ambos algoritmos
+Comparando ambos algoritmos:
 
 ```{r}
 costo_aco <-
@@ -1006,9 +1091,16 @@ if (is.infinite(costo_aco) && is.infinite(costo_ga)) {
 }
 ```
 
+En conclusión, el GA superó al ACO en ≈ 16 % de ahorro de costo, lo que indica que, con la configuración actual, el GA exploró el espacio de soluciones de forma más efectiva para este problema de rutas entre 13 ciudades.
+
+La mejor ruta hallada por el GA cubre primero el suroccidente (Pasto → Cali → Pereira → Manizales → Medellín) y luego “salta” a la costa Caribe (Cartagena → Barranquilla → Santa Marta), para finalmente recorrer el nororiente y centro (Cúcuta → Bucaramanga → Bogotá → Ibagué → Neiva).\
+Ese orden evita retornos largos y, al juntar tramos geográficamente cercanos, reduce tanto distancias como tiempo de conducción.
+
+En contraste, el **ACO** depende fuertemente de los parámetros de feromonas (α, β, tasa de evaporación ). Si la evaporación es alta o la influencia heurística (β) es baja, las hormigas pueden dispersarse demasiado y tardar más en reforzar la mejor ruta. Con los valores actuales, el ACO siguió mejorando pero no alcanzó la calidad que el GA obtuvo antes de que se cumpliera su criterio de parada.
+
 # Bibliografía {#bibliografía}
 
-La información sobre las distancias viales entre ciudades y tiempos de conducción fue obtenida de: Mejores Rutas. (n.d.). *Tabla de distancias entre ciudades de Colombia*. Recuperado el 25 de abril de 2025, de <https://colombia.mejoresrutas.com/tabla-de-distancias/co/#google_vignette>
+La información sobre las distancias viales entre ciudades y tiempos de conducción fue obtenida de: Google LLC. (2025). *Distance Matrix API*. Google Maps Platform. <https://developers.google.com/maps/documentation/distance-matrix>
 
 Información sobre el salario mínimo: Ministerio de Trabajo. (2025). *Presidente decreto salario mínimo para 2025 quedó en 1.623.500, incluido auxilio de transporte*. Recuperado el 25 de abril de 2025, de <https://www.mintrabajo.gov.co/presidente-decreto-salario-minimo-para-2025-quedo-en-1.623.500-incluido-auxilio-de-transporte>
 
@@ -1021,3 +1113,5 @@ Wikipedia. (s.f.). *Algoritmo de la colonia de hormigas*. *Wikipedia, La enciclo
 Wikipedia. (s.f.). *Algoritmo genético*. *Wikipedia, La enciclopedia libre*. Recuperado el 28 de abril de 2025, de <https://es.wikipedia.org/wiki/Algoritmo_gen%C3%A9tico>
 
 # Reporte de Contribución Individual {#reporte-de-contribución-individual}
+
+**Carlos José Quijano Valencia**: Responsable de la Parte 2 (Optimización combinatoria), levantamiento de supuestos de costo (salario, peajes, combustible, vehículo de referencia), construcción de la matriz de distancias y tiempos con la Google Distance Matrix API, implementación en R de los algoritmos Genético (GA) y Colonia de Hormigas (ACO) para el TSP de las 13 ciudades, análisis comparativo de costos GA vs ACO y redacción de conclusiones, generación de la animación GIF con el recorrido óptimo sobre el mapa de Colombia, documentación del código y subida al repositorio Git.
