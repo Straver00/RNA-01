@@ -33,39 +33,14 @@ Stiven Julio Doval
 
 **Universidad Nacional de Colombia, Sede Medellín**
 
-***Mayo 1 del 2025***
+***Mayo 2 del 2025***
+
+**Enlace a repositorio GitHub:** <https://github.com/Straver00/RNA_2025-1>
 
 </center>
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-```
-
-```{r import, include = FALSE}
-library(lattice)
-library(viridisLite)
-library(GA)
-library(pso)
-library(DEoptim)
-library(glue)
-library(plotly)
-library(ggplot2)
-library(viridis)
-library(reshape2)
-library(animation)
-library(stats)
-library(ggplot2)
-library(dplyr)
-library(rnaturalearthdata)
-library(httr)
-library(jsonlite)
-library(dplyr)
-library(tibble)
-library(readr)
-library(sf)
-library(gganimate)
-library(rnaturalearth)
-library(gifski)
 ```
 
 # Tabla de contenidos
@@ -82,26 +57,50 @@ library(gifski)
         - [GIF Algoritmos evolutivos](#gif-algoritmos-evolutivos)
         - [GIF Enjambres de partículas](#gif-enjambres-partículas)
         - [GIF Evolución diferencial](#gif-evolución-diferencial)  
-    -   [Métodos heurísticos vs Métodos de descenso por gradiente](#métodos-heurísticos-vs-métodos-de-descenso-por-gradiente)
+    -   [Métodos heurísticos vs Método de descenso por gradiente](#métodos-heurísticos-vs-métodos-de-descenso-por-gradiente)
+        - [Rastrigin](#simulación-rastrigin)
+        - [Rosenbrock](#simulación-rosenbrock)
+        - [Discusión](#discusión)
 2.  [Parte 2: Optimización Combinatoria](#parte-2-optimización-combinatoria)
     -   [Descripción del problema del vendedor](#descripción-del-problema-del-vendedor)
     -   [Algoritmos utilizados](#algoritmos-utilizados)
-    -   [Representación gráfica de la mejor solución](#representación-gráfica-de-la-mejor-solución)
 3.  [Bibliografía](#bibliografía)
 4.  [Reporte de Contribución Individual](#reporte-de-contribución-individual)
 
 
 # Parte 1: Optimización Numérica {#parte-1-optimización-numérica}
 
-```{r plot3d_function, include = FALSE}
+Comenzamos importando las librerías necesarias para esta primera mitad.
+```{r import1, message = FALSE}
+library(lattice)
+library(viridisLite)
+library(GA)
+library(pso)
+library(DEoptim)
+library(glue)
+library(plotly)
+library(ggplot2)
+library(viridis)
+library(reshape2)
+library(animation)
+```
+
+Definición de funciones de gráficos y gifs para posterior uso simplificado.
+```{r plot3d_function}
+# Función para simplificar producción gráfico 3D
 plot3D_f <- function(x, y, z, input_title){
+  # x, y : Coordenadas
+  # z: Matrix con la función evaluada
+  # input_title: Strin con el título
   plot_ly(
-    x = x, 
-    y = y, 
-    z = z, 
+    x = x,
+    y = y,
+    z = z,
     type = "surface",
-    colorscale = "Viridis" # Escala de color moderna
+    # Escala de color moderna
+    colorscale = "Viridis" 
   ) %>% layout(
+    # Rotulación
     title = input_title,
     scene = list(
       xaxis = list(title = "X"),
@@ -112,21 +111,30 @@ plot3D_f <- function(x, y, z, input_title){
 }
 ```
 
-```{r contour_level_function, include = FALSE}
+```{r contour_level_function}
+# Función para los gráficos de curvas de nivel
 contourLevel <- function(x, y, z, nlevels, title, xlim = NULL, ylim = NULL){
+  # x, y : Coordenadas
+  # z: Matrix con la función evaluada
+  # nlevels: Número de curvas de nivel a calcular
+  # xlim, ylim: Dominio y Rango de la gráfica
+  
+  # Verificamos si se definieron límites
   if (!is.null(xlim) & !is.null(ylim)){
     contour(x, y, z, nlevels = nlevels, las = 1, xlim = xlim, ylim = ylim)
   }
+  # Sino, se gráfica normalmente
   else{
     contour(x, y, z, nlevels = nlevels, las = 1)
   }
+  # Rotulación
   title(main = title)
   mtext("X", side = 1, line = 3)
   mtext("Y", side = 2, line = 3, las = 1)
 }
 ```
 
-```{r gif_generator, include = FALSE}
+```{r gif_generator}
 # Función para crear el GIF
 makeGIF <- function(array_points, x_seq, y_seq, z_eval, num_levels,
                     title, file_name, interval, sol){
@@ -141,17 +149,21 @@ makeGIF <- function(array_points, x_seq, y_seq, z_eval, num_levels,
     # interval: Define los segundos entre frames
     # sol: Vector con las coordenadas de la solución real
   saveGIF({
+    # Secuencia
     for (i in 1:length(array_points)) {
+      # Frame
       contour(x_seq, y_seq, z_eval,
               nlevels = num_levels, col = "grey40",
               xlab = "X", ylab = "Y",
               main = paste(title, i))
       
+      # Puntos
       points(array_points[[i]]$x, array_points[[i]]$y,
              col = "red", pch = 19)
       points(sol[1], sol[2],
              col = "green", pch = 19, lwd = 3)
     }
+  # Renderización según el intervalo específicado y el nombre de archivo
   }, movie.name = file_name, interval = interval, ani.width = 400, ani.height = 400) 
 }
 ```
@@ -188,10 +200,10 @@ rastrigin <- function(x) {
 rosenbrock <- function(x) {
   n <- length(x)
   # Aquí la indexación del vector de entrada
-  # permite cumplir con la eucación
+  # permite cumplir con la ecuación
   return(sum(100 * (x[-1] - x[-n]^2)^2 + (1 - x[-n])^2))
 }
-# Versión 1D -> 2D de Rosenbrock
+# Versión 1D -> 2D de Rosenbrock necesaria para algunos casos
 rosenbrock_2d <- function(x) {
   (1 - x[1])^2 + 100 * (x[2] - x[1]^2)^2
 }
@@ -275,7 +287,7 @@ ggplot(grid, aes(x, y, z = z_ros)) +
 contourLevel(x, y, z_ros, nlevels = 36, "Curvas de nivel de la función de Rosenbrock")
 ```
 
-Con las funciones presentadas y teniendo claro su topografía, además del espacio de búsqueda; procedemos con las optimizaciones
+Con las funciones presentadas y teniendo claro su topografía, además del espacio de búsqueda; procedemos con las optimizaciones.
 
 ## Optimización {#optimización-en-dos-y-tres-dimensiones}
 
@@ -293,7 +305,7 @@ El descenso de gradiente es un algoritmo de optimización determinista que busca
 
 En esta parte se realizará la optimización de las anteriores funciones en dos y tres dimensiones, usando el método de descenso por gradiente, el cual consiste en recorrer la función dando pasos pequeños en la dirección en donde la función decrece más rápido.
 
-En este caso debido a la complejidad de las funciones de prueba se realizaron algunas modificaciones al método simple, por ejemplo; si la distancia entre el punto y la actualización crece demasiado o el método no converge con cierto número de iteraciones, se reinicia el algoritmo con un nuevo punto aleatorio o el mejor punto encontrado hasta el momento, respectivamente. Esto hace que el método no se atasque en mínimos locales y llegue hasta el mínimo global.
+En este caso debido a la complejidad de las funciones de prueba se realizaron algunas modificaciones al método simple, por ejemplo; si la distancia entre el punto y la actualización crece demasiado o el método no converge con cierto número de iteraciones, se reinicia el algoritmo con un nuevo punto aleatorio o el mejor punto encontrado hasta el momento, respectivamente. Esto hace que el método sea menos propenso a quedarse en mínimos locales y tenga más chances de llegar hasta el mínimo global.
 
 Creamos entonces, la función para el decenso por gradiente
 
@@ -410,7 +422,7 @@ print(glue("\nLa mejor solución hallada está en (x, y) = ({gd_ras$min[1]}, {gd
 Con un valor óptimo de {gd_ras$value}."))
 ```
 
-Veamos como se ve la solución hallada en un gráfico de curvas de nivel, donde la **solución óptima real está representada como un punto verde** y la del **método de optimización con un triángulo rojo**:
+Veamos como se ve la solución hallada en un gráfico de curvas de nivel, donde la **solución óptima real está representada como un punto verde** y la del **método de optimización con un punto rojo**:
 
 ```{r gd_rastrigin2D_contour, fig.align='center', fig.cap="***Fig.7** GD Rastrigin*"}
 contourLevel(x, y, z_ras, nlevels = 10, title = "Solución Descenso por Gradiente vs Exacta\nRastrigin",
@@ -433,10 +445,9 @@ print(glue("\nLa mejor solución hallada está en:
 (x, y, z) = ({gd_ras$min[1]}, {gd_ras$min[2]}, {gd_ras$min[3]})
 Con un valor óptimo de {gd_ras$value}"))
 ```
-Ese valor óptimo hallado en 3D, nuevamente corresponde al de un mínimo local.
+Ese valor óptimo hallado en 3D, si analizamos las coordenadas (x, y, z) vemos que se aproxima al mínimo global, por lo que en esta ocasión el método lo hizo bien.
 
 <br>
-
 #### Rosenbrock
 
 Nuevamente, antes de proceder con su optimización, formulamos la función gradiente de Rosenbrock.
@@ -490,23 +501,22 @@ print(glue("\nLa mejor solución hallada está en:
 Con un valor óptimo de {gd_ros$value}"))
 ```
 Según los resultamos numéricos, nuevamente convergió bien el método.
-
 <br>
 
-***NOTA:* Para los siguientes métodos que se basan en poblaciones e iteraciones, estos parámetros serán iguales para todos; 50 miembros y 100 iteraciones.**
+***NOTA:* Para los siguientes métodos heurísticos que se basan en poblaciones e iteraciones, estos parámetros serán iguales para todos; 50 miembros y 100 iteraciones.**
 
 ### Algoritmos evolutivos {#algoritmos-evolutivos}
 
 Los algoritmos evolutivos (AE) son métodos de optimización inspirados en los mecanismos de la evolución biológica. Funcionan con una población de posibles soluciones que *evolucionan* a lo largo de varias generaciones mediante operaciones como la selección, cruzamiento, mutación y elitismo. La función `ga` de la librería `GA` la implementa y cuenta con parámetros como:
 
-  - Población inicial (popSize): Número de individuos (soluciones candidatas) generadas al inicio.
-  - Función de aptitud (fitness): Evalúa qué tan buena es una solución. Si el problema es de minimización, se suele usar el valor negativo de la función.
-  - Cruce o recombinación (pcrossover): Combina dos soluciones para crear nuevas.
-  - Mutación (pmutation): Modifica aleatoriamente una solución para mantener diversidad.
-  - Elitismo (elitism): Número de mejores soluciones que se copian directamente a la siguiente generación.
-  - Generaciones máximas (maxiter): Número total de generaciones.
-  - Criterio de parada temprana (run): Número de generaciones sin mejora antes de detenerse.
-  - Optimización local opcional (optim): Puede afinar soluciones localmente.
+  - *Población inicial (popSize)*: Número de individuos (soluciones candidatas) generadas al inicio.
+  - *Función de aptitud (fitness)*: Evalúa qué tan buena es una solución. Si el problema es de minimización, se suele usar el valor negativo de la función.
+  - *Cruce o recombinación (pcrossover)*: Combina dos soluciones para crear nuevas.
+  - *Mutación (pmutation)*: Modifica aleatoriamente una solución para mantener diversidad.
+  - *Elitismo (elitism)*: Número de mejores soluciones que se copian directamente a la siguiente generación.
+  - *Generaciones máximas (maxiter)*: Número total de generaciones.
+  - *Criterio de parada temprana (run)*: Número de generaciones sin mejora antes de detenerse.
+  - *Optimización local opcional (optim)*: Puede afinar soluciones localmente.
 
 El objetivo es encontrar una solución óptima o cercana al óptimo para un problema, especialmente cuando los métodos tradicionales no son eficaces debido a la complejidad del espacio de búsqueda.
 
@@ -545,7 +555,7 @@ points(0, 0, col = "green", pch = 19, lwd = 1)
 ```
 Vemos que no supone mayor dificultad para el método hallar una solución exacta en baja dimensionalidad.
 
-Procedemos la de Rastrigin 2D, considerando diversos argumentos de la función.
+Procedemos con la de Rastrigin 2D, considerando diversos argumentos de la función.
 
 ```{r ga_rastrigin2D}
 genetic_rastri <- ga(
@@ -601,7 +611,7 @@ De nuevo, solución perfectamente exacta.
 
 #### Rosenbrock
 
-Es momento de evaluar ahora que tal le va al método con la de Rosenbrock
+Es momento de evaluar ahora que tal le va al método con la de Rosenbrock, si logrará la misma exactitud que con Rastrigin.
 
 ```{r ga_rosenbrock1D}
 genetic_rosen <- ga(
@@ -629,10 +639,10 @@ Con un valor óptimo de {genetic_rosen@fitnessValue} en {genetic_rosen@iter} ite
 # Graficar la curva
 plot(x, f_ros, type = "l", col = "blue", lwd = 2,
      main = "Solución Algoritmo Evolutivo vs Exacta\nRosenbrock",
-     xlab = "x", ylab = "f(x)")
+     xlab = "x", ylab = "f(x)", ylim = c(0, 10))
 grid()
 points(genetic_rosen@solution[1], genetic_rosen@fitnessValue, col = "red", pch = 25, lwd = 3)
-points(1, 1, col = "green", pch = 19, lwd = 1)
+points(1, 0, col = "green", pch = 19, lwd = 1)
 ```
 Se obtiene una solución que a términos prácticos es exacta.
 
@@ -689,15 +699,15 @@ Según los resultados númericos, se aproxima bastante bien.
 
 ### Enjambres de partículas {#enjambres-partículas}
 
-Se base en las ideas de comportamientos de poblaciones como grupos de aves, que en búsqueda de alimento, no solo se mueven a cierta velocidad, sino que buscan en base a lo que observan del entorno, y lo que observan en sus compañeros. Para aplicar la optimización por enjambre de partículas se empleó la función `psoptim` de la librería `pso` (particle swarm optimization). Esta permite modificar diversos parámetros como por ejemplo:
+Se basa en las ideas de comportamientos de poblaciones como grupos de aves, que en búsqueda de alimento, no solo se mueven a cierta velocidad, sino que buscan en base a lo que observan del entorno, y lo que observan en sus compañeros. Para aplicar la optimización por enjambre de partículas se empleó la función `psoptim` de la librería `pso` (particle swarm optimization). Esta permite modificar diversos parámetros como por ejemplo:
 
   - Máximo número de iteraciones.
   - Tamaño del enjambre.
   - Magnitud del vector de velocidad.
-  - Constante de exploración local (cognitivo.
+  - Constante de exploración local (cognitivo).
   - Constante de exploración global (social).
 
-Entre muchos otros parámetros adicionales, pero, para este caso particular de comparación de métodos de optimización, solo se modificará el máximo número de iteraciones, los demás parámetros se dejarán por defecto.
+Entre muchos otros parámetros adicionales, pero, para este caso particular de comparación de métodos de optimización, solo se modificará el máximo número de iteraciones y población, los demás parámetros se dejarán por defecto.
 
 #### Rastrigin
 
@@ -709,8 +719,8 @@ ras_optim = psoptim(par = rep(NA, 2), fn = rastrigin,
                     lower = c(-5.12), upper = c(5.12))
 
 print(glue("La mejor solución hallada es:
-              x = {ras_optim$par[1]}, con f(x,y) = {ras_optim$value}"))
-print(ras_optim$message)
+x = {ras_optim$par[1]}, con f(x) = {ras_optim$value}.
+Usando {ras_optim$counts['iteration']} iteraciones."))
 ```
 
 ```{r pso_rastrigin_plot, fig.align='center', fig.cap="***Fig.13** PSO Rastrigin 1D*"}
@@ -722,18 +732,18 @@ grid()
 points(ras_optim$par[1], ras_optim$value, col = "red", pch = 25, lwd = 3)
 points(0, 0, col = "green", pch = 19, lwd = 1)
 ```
-La solucion númerica se aproxima lo suficiente para parecer gráficamente perfecta.
+La solucion númerica se aproxima lo suficientemente bien para ser gráficamente perfecta.
 
 ```{r pso_rastrigin2d}
 set.seed(2)
-# Usamos la función con 100 iteraciones
+# Usamos la función con 100 iteraciones y 50 miembros
 ras_optim = psoptim(par = rep(NA, 2), fn = rastrigin,
                     control = list(maxit = 100, s = 50),
                     lower = c(-5.12, -5.12), upper = c(5.12, 5.12))
 
 print(glue("La mejor solución hallada es:
-              x = {ras_optim$par[1]}, y = {ras_optim$par[2]}, con f(x,y) = {ras_optim$value}"))
-print(ras_optim$message)
+x = {ras_optim$par[1]}, y = {ras_optim$par[2]}, con f(x,y) = {ras_optim$value}.
+Usando {ras_optim$counts['iteration']} iteraciones."))
 ```
 
 Veamos en una gráfica de curvas de nivel la solución hallada:
@@ -744,20 +754,20 @@ contourLevel(x, y, z_ras, nlevels = 30, "Solución PSO vs Exacta\nRastrigin",
 points(ras_optim$par[1], ras_optim$par[2], pch = 25, col = "red", lwd = 2)
 points(0,0, col = "green", pch = 19, lwd = 1)
 ```
-Continuamos con solución óptima del método, suficientemente buena gráficamente
+Continuamos con una solución óptima del método, suficientemente buena gráficamente, con un error despreciable.
 
 ```{r pso_ras_3d}
 set.seed(2)
 # Usamos la función con 100 iteraciones
 ras_optim = psoptim(par = rep(NA, 3), fn = rastrigin,
-                    control = list(maxit = 100),
+                    control = list(maxit = 100, s = 50),
                     lower = rep(-5.12, 3), upper = rep(5.12, 3))
 
 print(glue("La mejor solución hallada es:
-              x = {ras_optim$par[1]}, y = {ras_optim$par[2]}, con f(x,y) = {ras_optim$value}"))
-print(ras_optim$message)
+           x = {ras_optim$par[1]}, y = {ras_optim$par[2]}, con f(x,y) = {ras_optim$value}.
+           Usando {ras_optim$counts['iteration']} iteraciones."))
 ```
-Se sigue aproximando decentemente, pero ya empieza a resultarle más complicado al método
+Se sigue aproximando decentemente, pero ya empieza a resultarle más complicado al método.
 
 <br>
 
@@ -771,20 +781,20 @@ ros_optim = psoptim(par = rep(NA, 2), fn = rosenbrock_2d,
                     lower = c(-5.12), upper = c(5.12))
 
 print(glue("La mejor solución hallada es:
-              x = {ras_optim$par[1]}, con f(x,y) = {ras_optim$value}"))
-print(ras_optim$message)
+           x = {ras_optim$par[1]}, con f(x) = {ras_optim$value}.
+           Usando {ras_optim$counts['iteration']} iteraciones."))
 ```
 
 ```{r pso_rosenbrock_plot, fig.align='center', fig.cap="***Fig.15** PSO Rosenbrock 1D*"}
 # Graficar la curva
 plot(x, f_ros, type = "l", col = "blue", lwd = 2,
      main = "Solución PSO vs Exacta\nRosenbrock",
-     xlab = "x", ylab = "f(x)")
+     xlab = "x", ylab = "f(x)", ylim = c(0, 10))
 grid()
 points(ros_optim$par[1], ros_optim$value, col = "red", pch = 25, lwd = 3)
-points(1, 1, col = "green", pch = 19, lwd = 1)
+points(1, 0, col = "green", pch = 19, lwd = 1)
 ```
-No le cuesta mucho en 1D, pero de primeras no logra el mismo nivel de exactitud numérico que los algoritmos evolutivos.
+No le cuesta mucho en 1D aproximarse bien, pero de primeras no logra el mismo nivel de exactitud numérico que los algoritmos evolutivos.
 
 Ahora veamos el resultado de optimizar la de Rosenbrock 2 variables.
 
@@ -792,21 +802,17 @@ Ahora veamos el resultado de optimizar la de Rosenbrock 2 variables.
 set.seed(2)
 # Usamos la función con 100 iteraciones
 ros_optim = psoptim(par = rep(NA, 2), fn = rosenbrock,
-                    control = list(maxit = 100),
+                    control = list(maxit = 100, s = 50),
                     lower = rep(-5.12, 2), upper = rep(5.12, 2))
 
 print(glue("La mejor solución hallada es:
-              x = {ros_optim$par[1]}, y = {ros_optim$par[2]}, con f(x,y) = {ros_optim$value}"))
-print(ros_optim$message)
+x = {ros_optim$par[1]}, y = {ros_optim$par[2]}, con f(x,y) = {ros_optim$value}.
+Usando {ras_optim$counts['iteration']} iteraciones."))
 ```
 
 ```{r pso_rosenbrock_contour, fig.align='center', fig.cap="***Fig.16** PSO Rosenbrock 2D*"}
 contourLevel(x, y, z_ros, nlevels = 4000, "Solución PSO vs Exacta\nRosenbrock",
              xlim = c(0.5, 1.5), ylim = c(0.5, 1.5))
-# contour(x, y, z_ros, nlevels = 1000, las = 1,
-#         xlim = c(0.5, 1.5), ylim = c(0.5, 1.5))
-# 
-# title(main = "Solución PSO vs Exacta\nRosenbrock", xlab = "x", ylab = "y")
 points(ros_optim$par[1], ros_optim$par[2], pch = 25, col = "red", lwd = 2)
 points(1,1, col = "green", pch = 19, lwd = 1)
 ```
@@ -817,19 +823,19 @@ Ahora veamos el resultado de optimizar la de Rosenbrock con variables *x,y,z*.
 set.seed(2)
 # Usamos la función con 100 iteraciones
 ros_optim = psoptim(par = rep(NA, 3), fn = rosenbrock,
-                    control = list(maxit = 100),
+                    control = list(maxit = 100, s = 50),
                     lower = rep(-5.12, 3), upper = rep(5.12, 3))
 
 print(glue("La mejor solución hallada es:
-              x = {ros_optim$par[1]}, y = {ros_optim$par[2]}, z = {ros_optim$par[3]}, con f(x,y) = {ros_optim$value}"))
-print(ros_optim$message)
+           x = {ros_optim$par[1]}, y = {ros_optim$par[2]}, z = {ros_optim$par[3]}, con f(x,y,z) = {ros_optim$value}.
+           Usando {ras_optim$counts['iteration']} iteraciones."))
 ```
-Vemos que ya en 3D el método de enjambre de partículas, le cuesta obtener resultados decentes con la función de Rosenbrock, se evidencia principalmente en la 3ra coordenada, con $z\approx 0.5245$.
+Vemos que ya en 3D el método de enjambre de partículas, le cuesta obtener resultados decentes con la función de Rosenbrock, se evidencia principalmente en la 3ra coordenada, con $z\approx 0.6612$.
 
 
 ### Evolución diferencial {#evolución-diferencial}
 
-La evolución diferencial (DE) es un algoritmo evolutivo específico, que se diferencia por su metodología para generar variación entre individuos por medio de diferencias entre ellos, modulada por un factor de escala *F*; a parte de tener las otras operaciones de los algortimos evolutivos convencionales. Los parámetros principales de este algoritmo incluyen:
+La evolución diferencial (*DE*) es un algoritmo evolutivo específico, que se diferencia por su metodología para generar variación entre individuos por medio de diferencias entre ellos, modulada por un factor de escala *F*, a parte de tener las otras operaciones de los algortimos evolutivos convencionales. Los parámetros principales de este algoritmo incluyen:
 
   - Tamaño de población.
   - Factor de escala.
@@ -864,8 +870,10 @@ de_rastri <- DEoptim(
   upper   = c(5.12),
   control = ctrl
 )
-cat("Valor óptimo Rastrigin 1D → f* =", de_rastri$optim$bestval,
-    "\nEn x =", paste(de_rastri$optim$bestmem[1], collapse=", "), "\n")
+
+print(glue("Valor óptimo Rastrigin 1D → f* = {de_rastri$optim$bestval}.
+           Obtenido en x = {de_rastri$optim$bestmem[1]}.
+           Usando {de_rastri$optim$iter} iteraciones."))
 ```
 
 ```{r de_rastrgin_plot, fig.align='center', fig.cap="***Fig.17** DE Rastrigin 1D*"}
@@ -888,8 +896,10 @@ de_rastri <- DEoptim(
   upper   = c(5.12, 5.12),
   control = ctrl
 )
-cat("Valor óptimo Rastrigin 2D → f* =", de_rastri$optim$bestval,
-    "\nEn (x,y) =", paste(de_rastri$optim$bestmem, collapse=", "), "\n")
+
+print(glue("Valor óptimo Rastrigin 2D → f* = {de_rastri$optim$bestval}.
+Obtenido en (x,y) = ({de_rastri$optim$bestmem[1]}, {de_rastri$optim$bestmem[2]}).
+Usando {de_rastri$optim$iter} iteraciones."))
 ```
 Evaluemos la calidad de la solución visualmente con una gráfica de contornos de nivel.
 ```{r de_rastrigin_contour, fig.align='center', fig.cap="***Fig.18** DE Rastrigin 2D*"}
@@ -912,10 +922,12 @@ de_rastri<- DEoptim(
   upper = rep(5.12, 3),
   control = ctrl
 )
-cat("Valor óptimo Rastrigin 3D → f* =", de_rastri$optim$bestval,
-    "\nEn (x,y,z) =", paste(de_rastri$optim$bestmem, collapse=", "), "\n")
+
+print(glue("Valor óptimo Rastrigin 3D → f* = {de_rastri$optim$bestval}.
+Obtenido en (x,y,z) = ({de_rastri$optim$bestmem[1]}, {de_rastri$optim$bestmem[2]}, {de_rastri$optim$bestmem[3]}).
+Usando {de_rastri$optim$iter} iteraciones."))
 ```
-Como todos los métodos, también le resulta más costoso mejorar la solución en el caso 3D.
+Como era de esperar, cada vez le resulta más costoso mejorar la solución en Rastrigin al aumentar la dimensionalidad.
 
 #### Rosenborck
 
@@ -929,18 +941,20 @@ de_rosen <- DEoptim(
   upper   = c(5.12),
   control = ctrl
 )
-cat("Valor óptimo Rosenbrock 1D → f* =", de_rosen$optim$bestval,
-    "\nEn x =", paste(de_rosen$optim$bestmem, collapse=", "), "\n")
+
+print(glue("Valor óptimo Rosenbrock 1D → f* = {de_rosen$optim$bestval}.
+Obtenido en x = {de_rosen$optim$bestmem[1]}.
+Usando {de_rosen$optim$iter} iteraciones."))
 ```
 
 ```{r de_rosenbrock_plot, fig.align='center', fig.cap="***Fig.19** DE Rosenbrock 1D*"}
 # Graficar la curva
 plot(x, f_ros, type = "l", col = "blue", lwd = 2,
      main = "Solución Evolución Diferencial vs Exacta\nRosenbrock",
-     xlab = "x", ylab = "f(x)")
+     xlab = "x", ylab = "f(x)", ylim = c(0, 10))
 grid()
 points(de_rosen$optim$bestmem[1], de_rosen$optim$bestval, col = "red", pch = 25, lwd = 3)
-points(1, 1, col = "green", pch = 19, lwd = 1)
+points(1, 0, col = "green", pch = 19, lwd = 1)
 ```
 Vemos que la evolución diferencial arranca teniendo un resultado exacto en el argumento que minimiza a la función de Rosenbrock.
 
@@ -954,8 +968,10 @@ de_rosen <- DEoptim(
   upper   = c(5.12, 5.12),
   control = ctrl
 )
-cat("Valor óptimo Rosenbrock 2D → f* =", de_rosen$optim$bestval,
-    "\nEn (x,y) =", paste(de_rosen$optim$bestmem, collapse=", "), "\n")
+
+print(glue("Valor óptimo Rosenbrock 2D → f* = {de_rosen$optim$bestval}.
+Obtenido en (x,y) = ({de_rosen$optim$bestmem[1]}, {de_rosen$optim$bestmem[2]}).
+Usando {de_rosen$optim$iter} iteraciones."))
 ```
 
 ```{r de_rosenbrock_contour, fig.align='center', fig.cap="***Fig.20** DE Rosenbrock 2D*"}
@@ -966,7 +982,7 @@ contourLevel(x, y, z_ros, nlevels = 4000, "Solución Evolución Diferencial vs E
 points(best_point[1], best_point[2], pch = 25, col = "red", lwd = 2)
 points(1, 1, col = "green", pch = 19, lwd = 1)
 ```
-El método continua produciendo un buen resultado con esta función.
+El método continua produciendo un muy buen resultado con esta función.
 
 Veamos que tal con entrada 3D *(x, y, z)*.
 ```{r de_rosenbrock3D}
@@ -978,8 +994,9 @@ de_rosen <- DEoptim(
   upper = rep(5.12, 3),
   control = ctrl
 )
-cat("Valor óptimo Rosenbrock 3D → f* =", de_rosen$optim$bestval,
-    "\nEn (x,y,z) =", paste(de_rosen$optim$bestmem, collapse=", "), "\n")
+print(glue("Valor óptimo Rosenbrock 3D → f* = {de_rosen$optim$bestval}.
+Obtenido en (x,y,z) = ({de_rosen$optim$bestmem[1]}, {de_rosen$optim$bestmem[2]}, {de_rosen$optim$bestmem[3]}).
+Usando {de_rosen$optim$iter} iteraciones."))
 ```
 
 A términos generales, la evolución diferencial le va especialmente bien con la función de Rosenbrock
@@ -989,6 +1006,8 @@ A términos generales, la evolución diferencial le va especialmente bien con la
 ## Generación de los GIF {#representación-gráfica-del-proceso-de-optimizacion}
 
 Para poder generar los gifs, es necesario activar el monitoreo o trazabilidad de los miembros de las poblaciones, para cada iteración, por lo cual se volverán a correr todos los métodos de optmización pero con parámetros específicos.
+
+**Observación**: Las celdas de producción de GIFs solo se ejecutaron una vez para generar los archivos, y ya luego se etiquetaron con HTML. Para la ejecución del .Rmd cambiar "eval = FALSE" a "eval = TRUE", o en su defecto borrar ese parámetro del chunk.
 
 ### Descenso por gradiente {#gif-descenso-gradiente}
 
@@ -1020,7 +1039,7 @@ makeGIF(positions, x, y, z_ras, 10, "Descenso por Gradiente en Rastrigin - Itera
 Se aprecia inmediatamente que el método convergió muy rápido, pero a un **mínimo local**.
 <br>
 
-Miramos el GID de Rosenbrock con gradiente.
+Miramos el GIF de Rosenbrock con gradiente.
 ```{r gif_gd_ros, warning = FALSE, eval = FALSE}
 set.seed(2)
 vec <- runif(2, min = -5.12, max = 5.12)
@@ -1034,8 +1053,8 @@ for (iter in 1:dim(gd_ros_gif$path)[1]) {
 }
 
 # Antes de pasar al GIF, como este proceso tuvo demasiadas iteraciones
-# y el método de gradiente se estanca mucho, tomamos puntos cada 250 muestras
-positions <- positions[seq(1, length(positions), by = 250)]
+# y el método de gradiente se estanca mucho, tomamos puntos cada 200 muestras
+positions <- positions[seq(1, length(positions), by = 200)]
 
 # Generamos el GIF
 num_iter <- dim(gd_ros_gif$path)[1]
@@ -1052,6 +1071,8 @@ makeGIF(positions, x, y, z_ros, 40,
 <br>
 Recordando que acorde al código, debido a la enorme cantidad de iteraciones del método de gradiente, se tomaron iteraciones en pasos grandes; se puede observar que aunque son muchas iteraciones, logra alcanzar el mínimo global. Esto sumado a las ejecuciones iniciales de experimentación, denota que la función de Rosenbrock, tiene una topografía que no perjudica tanto al método, si lo comparamos con la de Rastrigin por ejemplo.
 <br>
+
+***NOTA*: Para los GIF de los métodos heurísticos, se emplean 20 miembros de población y 100 iteraciones.*
 
 ### Algoritmos evolutivos {#gif-algoritmos-evolutivos}
 
@@ -1096,8 +1117,9 @@ makeGIF(positions, x, y, z_ras, 10, "GA en Rastrigin - Iteración",
 ***Gif.3** Proceso Evolutivo Rastrigin*
 </center>
 
-Se aprecia que hay puntos que llegan al mínimo global, pero al final de las iteraciones, varios miembros permanecieron en mínimos locales, aquí la ventaja de obtener la buena solución es por el almacenamiento de la función del mejor valor detectado al final del algoritmo.
+Se aprecia que hay puntos que llegan al mínimo global, pero al final de las iteraciones, varios miembros permanecieron en mínimos locales, aquí la ventaja de obtener la buena solución es por el almacenamiento de las coordenadas que dan el mejor valor detectado al final del algoritmo.
 
+Veamos ahora para Rosenbrock con GA.
 ```{r gif_ga_ros, warning = FALSE, eval = FALSE}
 # Creamos lista global para guardar los puntos por generación
 poblacion_por_gen <- list()
@@ -1224,7 +1246,7 @@ Particularmente en la función de Rosenbrock, aunque el método de enjambre va c
 
 ### Evolución diferencial {#gif-evolución-diferencial}
 
-Esta función por defecto guarda los puntos de pbolación en cada iteración, por lo cuál solo es necesario acceder a ellos por medio del atributo `$member` del objeto.
+Esta función solo requiere setear los argumentos `storepopfrom` y `storepopfreq` para guardar los puntos de población en cada iteración, y se accede a ellos por medio del atributo `$member` del objeto.
 
 Comenzamos primero, con la estructura de control.
 ```{r de_control}
@@ -1269,7 +1291,7 @@ makeGIF(positions, x, y, z_ras, 10, "DE en Rastrigin - Iteración",
 
 <br>
 
-Por ejemplo en este GIF se aprecia la importancia del tamaño de población, sin individuos suficientes en constante búsqueda, el algoritmo se estancaría fácilmente en un óptimo local.
+Por ejemplo en este GIF se aprecia la importancia del tamaño de población, sin individuos suficientes en constante búsqueda, el algoritmo se estancaría fácilmente en un óptimo local. Aquí también se aprecia como miembros de la población van migrando a diversos mínimos de la función, haciendo uso del distintivo del algoritmo, que es la comparación por diferencias.
 
 Finalizamos los GIFs con el de Rosenbrock.
 ```{r gif_de_ros, message = FALSE, warning = FALSE, eval = FALSE}
@@ -1305,6 +1327,202 @@ Se resalta la alta, rápida y organizada convergencia del método de evolución 
 
 ## Heuristícos VS Descenso por gradiente {#métodos-heurísticos-vs-métodos-de-descenso-por-gradiente}
 
+Para tener una herramienta previo al análisis final, se va establecer una métrica comparativa (entendiendo las simplificaciones que esto implica por la diversidad de métodos), en la que se va a medir el error en optimización promedio de cada método, para cada función, y este error se va a ponderar en función de la cantidad media de evaluaciones de la F.O e iteraciones del método. Más explicitamente:
+
+$$
+\text{Métrica de ineficiencia} = \overline{|{\text{error}}|} \times \overline{\text{iteraciones}} \times \overline{\text{evaluaciones}}
+$$
+Para esto vamos a correr en un ciclo definido **for**, los 3 métodos heurísticos con **100 semillas diferentes de aleatoriedad**, recopilaremos los resultados, obtendremos el promedio de cada factor, y con ellos calcularemos la métrica. La prueba será con las funciones a 3 variables de entrada, para mayor exigencia, y como parámetros lo estableceremos con 50 miembros de población y 100 iteraciones límite.
+
+### Rastrigin {#simulación-rastrigin}
+
+```{r simulation_rastrigin}
+n_runs <- 100
+
+# Estructura de control para evolución diferencial
+ctrl <- DEoptim.control(
+  NP      = 50,
+  itermax = 100,
+  trace   = FALSE,  
+)
+
+# Listas para los datos
+ga_error <- vector("list", 100)
+ga_iter <- vector("list", 100)
+ga_eval <- vector("list", 100)
+
+pso_error <- vector("list", 100)
+pso_iter <- vector("list", 100)
+pso_eval <- vector("list", 100)
+
+de_error <- vector("list", 100)
+de_iter <- vector("list", 100)
+de_eval <- vector("list", 100)
+
+# Simulación con 100 semillas diferentes
+for (i in 1:n_runs) {
+  # GA
+  set.seed(i)
+  ga_i <- ga(
+    type = "real-valued",
+    fitness = function(x){return(-rastrigin(x))},
+    lower = rep(-5.12, 3),
+    upper = rep(5.12, 3),
+    popSize = 50,
+    maxiter = 100,
+    monitor = FALSE
+  )
+  ga_error[[i]] <- abs(ga_i@fitnessValue)
+  ga_iter[[i]] <- ga_i@iter
+  # No hay método directo, toca calcularlo así
+  ga_eval[[i]] <- ga_i@popSize * ga_i@iter
+  
+  # PSO
+  set.seed(i)
+  pso_i <- psoptim(
+    par = rep(NA, 3),
+    fn = rastrigin,
+    control = list(maxit = 100, s = 50),
+    lower = rep(-5.12, 3), upper = rep(5.12, 3)
+  )
+  pso_error[[i]] <- abs(pso_i$value)
+  pso_iter[[i]] <- pso_i$counts["iteration"]
+  pso_eval[[i]] <- pso_i$counts["function"]
+  
+  # DE
+  set.seed(i)
+  de_i <- DEoptim(
+    fn      = rastrigin,
+    lower   = rep(-5.12, 3), upper = rep(5.12, 3),
+    control = ctrl
+  )
+  de_error[[i]] <- abs(de_i$optim$bestval)
+  de_iter[[i]] <- de_i$optim$iter
+  de_eval[[i]] <- de_i$optim$nfeval
+}
+
+# Calculamos la métrica
+metric_ga = prod(sapply(list(ga_error, ga_iter, ga_eval), function(x) mean(unlist(x))))
+metric_pso = prod(sapply(list(pso_error, pso_iter, pso_eval), function(x) mean(unlist(x))))
+metric_de = prod(sapply(list(de_error, de_iter, de_eval), function(x) mean(unlist(x))))
+```
+
+Veamos gráficamente los resultados de la simulación con Rastrigin.
+
+```{r barplot_rastrigin, fig.align='center', fig.cap="***Fig.21** Comparación Rastrigin*"}
+# Creamos un data frame
+datos <- data.frame(
+  categoria = c("GA", "PSO", "DE"),
+  valor = round(c(metric_ga, metric_pso, metric_de),3)
+)
+
+colors <- c("GA" = "#A9DFBF", "PSO" = "#AED6F1", "DE" = "#FFD7B5")
+
+# Gráfico de barras
+ggplot(datos, aes(x = categoria, y = valor, fill = categoria)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = valor), vjust = -0.5) +
+  scale_fill_manual(values = colors) +
+  labs(title = "Métrica de ineficiencia - Rastrigin",
+       x = "Métodos",
+       y = "Ineficiencia") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+### Rosenbrock {#simulación-rosenbrock}
+
+```{r simulation_rosenbrock}
+# Listas para los datos
+ga_error <- vector("list", 100)
+ga_iter <- vector("list", 100)
+ga_eval <- vector("list", 100)
+
+pso_error <- vector("list", 100)
+pso_iter <- vector("list", 100)
+pso_eval <- vector("list", 100)
+
+de_error <- vector("list", 100)
+de_iter <- vector("list", 100)
+de_eval <- vector("list", 100)
+
+# Simulación con 100 semillas diferentes
+for (i in 1:n_runs) {
+  # GA
+  set.seed(i)
+  ga_i <- ga(
+    type = "real-valued",
+    fitness = function(x){return(-rosenbrock(x))},
+    lower = rep(-5.12, 3),
+    upper = rep(5.12, 3),
+    popSize = 50,
+    maxiter = 100,
+    monitor = FALSE
+  )
+  ga_error[[i]] <- abs(ga_i@fitnessValue)
+  ga_iter[[i]] <- ga_i@iter
+  # No hay método directo, toca calcularlo así
+  ga_eval[[i]] <- ga_i@popSize * ga_i@iter
+  
+  # PSO
+  set.seed(i)
+  pso_i <- psoptim(
+    par = rep(NA, 3),
+    fn = rosenbrock,
+    control = list(maxit = 100, s = 50),
+    lower = rep(-5.12, 3), upper = rep(5.12, 3)
+  )
+  pso_error[[i]] <- abs(pso_i$value)
+  pso_iter[[i]] <- pso_i$counts["iteration"]
+  pso_eval[[i]] <- pso_i$counts["function"]
+  
+  # DE
+  set.seed(i)
+  de_i <- DEoptim(
+    fn      = rosenbrock,
+    lower   = rep(-5.12, 3), upper = rep(5.12, 3),
+    control = ctrl
+  )
+  de_error[[i]] <- abs(de_i$optim$bestval)
+  de_iter[[i]] <- de_i$optim$iter
+  de_eval[[i]] <- de_i$optim$nfeval
+}
+
+# Calculamos la métrica
+metric_ga = prod(sapply(list(ga_error, ga_iter, ga_eval), function(x) mean(unlist(x))))
+metric_pso = prod(sapply(list(pso_error, pso_iter, pso_eval), function(x) mean(unlist(x))))
+metric_de = prod(sapply(list(de_error, de_iter, de_eval), function(x) mean(unlist(x))))
+```
+
+Veamos gráficamente los resultados de la iteración con Rosenbrock.
+
+```{r barplot_rosenbrock, fig.align='center', fig.cap="***Fig.22** Comparación Rosenbrock*"}
+# Creamos un data frame
+datos <- data.frame(
+  categoria = c("GA", "PSO", "DE"),
+  valor = round(log(c(metric_ga, metric_pso, metric_de),3))
+)
+
+colors <- c("GA" = "#A9DFBF", "PSO" = "#AED6F1", "DE" = "#FFD7B5")
+
+# Gráfico de barras
+ggplot(datos, aes(x = categoria, y = valor, fill = categoria)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = valor), vjust = -0.5) +
+  scale_fill_manual(values = colors) +
+  labs(title = "Métrica de ineficiencia - Rosenbrock (Logarítmica)",
+       x = "Métodos",
+       y = "Ineficiencia") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+Fue necesario poner esta gráfica con el logaritmo base euler de los valores, ya que la métrica de ineficiencia de algoritmos evolutivos **GA** era mucho mayor a las demás.
+
+<br>
+
+### Discusión {#discusión}
+
 Tras las ejecuciones realizadas tanto en materia de experimentaciones iniciales, ejecuciones oficiales en el documento, como los análisis a partir de los GIF; todo esto en complemento con la teoría conocida del curso y las discuiones de clase, se puede concluir lo siguiente:
 
   
@@ -1326,7 +1544,11 @@ Tras las ejecuciones realizadas tanto en materia de experimentaciones iniciales,
   
   - **Equiparar o hacer comparaciones extensas entre los propios métodos heurísticos representa una tarea complicada**, ya que poseen hiperparámetros muy distintos entre sí, los cuales no se pueden igualar de forma simple. Ni siquiera la cantidad de iteraciones máximas puede compararse directamente, dado que una iteración en un algoritmo no tiene el mismo peso o significado que en otro. Además, de la dependencia del estado aleatorio de inicialización de la población en menor medida.
   
-  - A pesar de la dificultad para equipararlos de forma detallada, con las simulaciones realizadas se pudo evidenciar, bajo algunos casos estándar, ciertas virtudes de unos métodos sobre otros. Por ejemplo, la evolución diferencial logra resultados buenos y rápidos con la función de Rosenbrock, según lo observado tanto en el GIF como numéricamente; mientras que al enjambre de partículas le resulta más difícil una convergencia rápida con Rosenbrock, aunque lo hace muy bien con Rastrigin. A su vez, los algoritmos evolutivos se mostraron como una opción equilibrada en ambas funciones.
+  - A pesar de la dificultad para equipararlos de forma detallada; con las simulaciones realizadas se pudo evidenciar, bajo algunos casos estándar, ciertas virtudes de unos métodos sobre otros:
+  
+    - Por ejemplo, la evolución diferencial logra resultados eficientes con la función de Rosenbrock, pues fue la de menor métrica de ineficiencia, mientras que a los algoritmos evolutivos les costó dramáticamente dicha función.
+    
+    - Por otro lado y para contraste, los algoritmos evolutivos fueron los mejores para Rastrigin, mientras que los enjambres de partículas resultaron ser los más ineficientes para esta función. Esto deja a la evolución diferencial para estas simulaciones estándar, como una opción altamente equilibrada.
 
 <br>
 
@@ -1413,13 +1635,15 @@ library(jsonlite)
 library(dplyr)
 library(tibble)
 library(readr)
+library(dotenv)
 ```
 
 Consultamos las distancias viales entre las ciudades y tiempos de viaje ofrecidos por la API de Google. Adicionalmente cargamos los costos de peajes, los nombres de las ciudades y el número de ciudades:
 
 ```{r}
 # Consultamos las distancias viales y tiempos de viaje
-API_KEY <- "APIKEY DE GOOGLE MAPS"
+dotenv::load_dot_env()
+API_KEY <- Sys.getenv("APIKEY_DE_GOOGLE_MAPS")
 
 addresses <- c(
   "Bogota, Colombia", "Cali, Colombia", "Medellin, Colombia", "Barranquilla, Colombia",
@@ -1779,7 +2003,7 @@ ant_colony_optimization_r_con_historial <- function(costos, num_ants = 10, num_i
 
 Ahora, ejecutamos la función `ant_colony_optimization_r_con_historial` con un conjunto de parámetros definidos. Se establece una semilla (`set.seed`) para garantizar la reproducibilidad de los resultados, dado el componente probabilístico del algoritmo.
 
-Adicional, en la **figura 21** se observa como el algoritmo va obtendiendo mejores resultados al optimizar la función.
+Adicional, en la **figura 23** se observa como el algoritmo va obtendiendo mejores resultados al optimizar la función.
 
 ```{r}
 # Parámetros de ejecución
@@ -1831,7 +2055,7 @@ if (!is.null(resultado_aco) && is.finite(resultado_aco$best_tour_cost)) {
         grid() # Añadir una rejilla
 
         # 2. Añadir el caption en el margen inferior
-        caption_text <- "Figura 21: Evolución del mejor costo acumulado encontrado por ACO en cada iteración."
+        caption_text <- "Figura 23: Evolución del mejor costo acumulado encontrado por ACO en cada iteración."
         # Ajusta 'line' (e.g., 4, 4.5, 5) si el caption se superpone con xlab
         mtext(caption_text, side = 1, line = 5, adj = 0, cex = 0.8)
 
@@ -1931,7 +2155,7 @@ if(exists("all_segments_history") && nrow(all_segments_history) > 0) {
       labs(
         title = "Proceso de Optimización ACO - Iteración {frame}", 
         subtitle = "Mostrando la mejor ruta encontrada hasta esta iteración", 
-        caption = "Figura 22: Proceso de optimización ACO - Iteraciones. (Fuente: Elaboración propia, 2025).", y = "Latitud"
+        caption = "Figura 24: Proceso de optimización ACO - Iteraciones. (Fuente: Elaboración propia, 2025).", y = "Latitud"
       ) +
       ease_aes('linear') 
     
@@ -1977,13 +2201,13 @@ if(exists("all_segments_history") && nrow(all_segments_history) > 0) {
 }
 ```
 
-La animación resultante (**Figura 22**) ilustra cómo la mejor ruta encontrada por el algoritmo ACO evoluciona a lo largo de las iteraciones, tendiendo a estabilizarse a medida que el algoritmo converge hacia una solución de bajo costo.
+La animación resultante (**Figura 24**) ilustra cómo la mejor ruta encontrada por el algoritmo ACO evoluciona a lo largo de las iteraciones, tendiendo a estabilizarse a medida que el algoritmo converge hacia una solución de bajo costo.
 
 ```{r}
 knitr::include_graphics("proceso_optimizacion_aco_optimizado.gif")
 ```
 
-Continuando con con el **Algoritmo Genetico**:
+Continuando con con el **Algoritmo Genético**:
 
 Continuando con las metaheurísticas, ahora abordamos los **Algoritmos Genéticos (AG)**, una clase de algoritmos de optimización inspirados en el proceso de la evolución natural y la genética. Los AG son particularmente efectivos para problemas complejos donde el espacio de búsqueda es grande, como el Problema del Viajante de Comercio.
 
@@ -2180,7 +2404,7 @@ if (!is.null(resultado_ga)) {
       title(main = "Convergencia del Algoritmo Genético (GA)")
 
 
-      caption_text <- "Figura 23: Evolución del mejor fitness (verde) y fitness promedio (azul) por generación."
+      caption_text <- "Figura 25: Evolución del mejor fitness (verde) y fitness promedio (azul) por generación."
 
       mtext(caption_text, side = 1, line = 5, adj = 0, cex = 0.8)
 
@@ -2256,7 +2480,7 @@ if(nrow(all_segments_history_ga) == 0) {
 }
 ```
 
-En la **figura 23** se nota como obtiene mejores resultados en especial en el "Best" a medida que el algoritmo avanza en las generaciones.
+En la **figura 25** se nota como obtiene mejores resultados en especial en el "Best" a medida que el algoritmo avanza en las generaciones.
 
 Creamos la animación para los algortimos geneticos:
 
@@ -2286,7 +2510,7 @@ if(exists("all_segments_history_ga") && nrow(all_segments_history_ga) > 0 && exi
       labs(
         title = "Proceso GA - Generación {frame}", 
         subtitle = "Mejor ruta encontrada en esta generación", 
-        caption = "Figura 24: Proceso de optimización ACO(Fuente: Elaboración propia, 2025)", 
+        caption = "Figura 26: Proceso de optimización ACO(Fuente: Elaboración propia, 2025)", 
         x = "Longitud", y = "Latitud"
       ) + 
       ease_aes('linear') 
@@ -2333,7 +2557,7 @@ if(exists("all_segments_history_ga") && nrow(all_segments_history_ga) > 0 && exi
 } 
 ```
 
-La animación resultante (**Figura 24**) ilustra cómo la mejor ruta encontrada por el algoritmo AG evoluciona a lo largo de las iteraciones, tendiendo a estabilizarse a medida que el algoritmo converge hacia una solución de bajo costo.
+La animación resultante (**Figura 26**) ilustra cómo la mejor ruta encontrada por el algoritmo AG evoluciona a lo largo de las iteraciones, tendiendo a estabilizarse a medida que el algoritmo converge hacia una solución de bajo costo.
 
 ```{r}
 knitr::include_graphics("proceso_optimizacion_ga.gif")
@@ -2402,7 +2626,15 @@ En contraste, el **ACO** depende fuertemente de los parámetros de feromonas (α
 
 # Bibliografía {#bibliografía}
 
-- Clerc, M., & Coelho, L. S. (2022, octubre 14). *pso: Particle Swarm Optimization (Version 1.0-5)* [Manual de referencia]. The R Project for Statistical Computing. <https://cran.r-project.org/web/packages/pso/pso.pdf>
+- Wikipedia contributors. (2023, Diciembre 12). *Rastrigin function*. Wikipedia. <https://en.wikipedia.org/wiki/Rastrigin_function>
+
+- Wikipedia contributors. (2024, Abril 17). *Rosenbrock function*. Wikipedia. <https://en.wikipedia.org/wiki/Rosenbrock_function>
+
+- Scrucca, L. (2025). *GA: Genetic Algorithms*. CRAN. <https://cran.r-project.org/web/packages/GA/GA.pdf>
+
+- Clerc, M., & Coelho, L. S. (2022, Octubre 14). *pso: Particle Swarm Optimization (Version 1.0-5)* [Manual de referencia]. The R Project for Statistical Computing. <https://cran.r-project.org/web/packages/pso/pso.pdf>
+
+- Mullen, K., Ardia, D., Gil, D., Windover, D., & Cline, J. (2025). *DEoptim: Global Optimization by Differential Evolution*. CRAN. <https://cran.r-project.org/web/packages/DEoptim/DEoptim.pdf>
 
 - La información sobre las distancias viales entre ciudades y tiempos de conducción fue obtenida de: Google LLC. (2025). *Distance Matrix API*. Google Maps Platform. <https://developers.google.com/maps/documentation/distance-matrix>
 
@@ -2418,13 +2650,13 @@ En contraste, el **ACO** depende fuertemente de los parámetros de feromonas (α
 
 # Reporte de Contribución Individual {#reporte-de-contribución-individual}
 
-**Carlos José Quijano Valencia**: Responsable de la Parte 2 (Optimización combinatoria), levantamiento de supuestos de costo (salario, peajes, combustible, vehículo de referencia), construcción de la matriz de distancias y tiempos con la Google Distance Matrix API, implementación en R de los algoritmos Genético (GA) y Colonia de Hormigas (ACO) para el TSP de las 13 ciudades, análisis comparativo de costos GA vs ACO y redacción de conclusiones en esa sección, generación de la animación GIF con el recorrido óptimo sobre el mapa de Colombia, documentación del código y subida al repositorio Git.
+**Carlos José Quijano Valencia**: Responsable de la Parte 2 (Optimización combinatoria), levantamiento de supuestos de costo (salario, peajes, combustible, vehículo de referencia), construcción de la matriz de distancias y tiempos con la Google Distance Matrix API, implementación en R de los Algoritmos Genéticos (GA) y Colonia de Hormigas (ACO) para el TSP de las 13 ciudades, análisis comparativo de costos GA vs ACO y redacción de conclusiones en esa sección, generación de la animación GIF con el recorrido óptimo sobre el mapa de Colombia, documentación del código y subida al repositorio Git.
 
 
-**Miller Alexis Quintero García**: Optimización por enjambre de partículas con `pso`, definición de funciones estándar y simplificadas para la generación de gráficos 3D, curvas de nivel, gráficas 2D, y generación de GIFs de procesos de optmización. Rotulación de gráficas con las opciones de las celdas código R y con HTML, integración y estandarización de todas las secciones de la parte 1 en base al trabajo del equipo.
+**Miller Alexis Quintero García**: Optimización por enjambre de partículas con `pso`, definición de funciones estándar simplifcadas para la generación de: gráficos 3D, curvas de nivel, gráficos 2D, y generación de GIFs de procesos de optmización. Rotulación de gráficas con las opciones de las celdas código R y con HTML; integración y estandarización de todas las secciones de la parte 1 en base al trabajo del equipo, simulaciones múltiples y gráficos comparativos de los métodos heurísticos, formulación de observaciones y conclusiones de la comparación de métodos heurísticos y descenso por gradiente, finalizando con bibliografía de la parte 1.
 
 
-**Kelly Yojana Ospina Correa**: Optimización por algoritmos evolutivos, creación de workspace de trabajo en R, definición en código de funciones a optmizar y espacio de búsqueda, implementación de la función de monitoreo personalizada para la función `ga` la librería `GA` y su procesamiento para el GIF. Revisión de estilos y visuales del trabajo.
+**Kelly Yojana Ospina Correa**: Optimización por algoritmos evolutivos, creación de workspace de trabajo en R, definición en código de funciones a optimizar y espacio de búsqueda, implementación de la función de monitoreo personalizada para la función `ga` la librería `GA` y su procesamiento de datos para el GIF. Formulación de conclusiones y análisis alrededor de los algoritmos evolutivos en la parte 1, y revisión de estilos/visuales del trabajo.
 
 
 **Mateo Sebastián Mora Montero**: Implementación manual y personalizada del algoritmo de descenso por gradiente, añadiendo los atributos y métodos para el monitoreo, definición de funciones especifícas en código para los gradientes de las funciones. Revisión ortográfica y gramática del trabajo en general.
